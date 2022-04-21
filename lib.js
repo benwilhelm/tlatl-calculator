@@ -7,12 +7,20 @@ const operators = {
   '*': (a, b) => a * b,
 };
 
-function termsFromExpression(input) {
-  return input
+function constructExpressionTerms(input, ctx) {
+  const terms = input
     .trim()
     .split(/\s+/)
     .map((t) => t.trim())
+    .map((t) => (ctx.savedValues?.hasOwnProperty(t) ? ctx.savedValues[t] : t))
     .map((t) => (isNaN(t) ? t : +t));
+
+  // even number of terms, likely needs running value prepended
+  if (terms.length % 2 === 0) {
+    terms.unshift(ctx.current);
+  }
+
+  return terms;
 }
 
 function validateTerms(terms) {
@@ -36,6 +44,15 @@ function validateTerms(terms) {
   return true;
 }
 
+function saveValueToContext(ctx, name, value) {
+  ctx.savedValues = ctx.savedValues || {};
+  ctx.savedValues[name] = value;
+}
+
+function getSavedValueFromContext(ctx, name) {
+  return ctx.savedValues[name];
+}
+
 export function evaluateTerms(terms) {
   if (!validateTerms(terms)) {
     const err = new Error(`Invalid Expression: ${terms.join(' ')}`);
@@ -54,14 +71,12 @@ export function evaluateTerms(terms) {
 }
 
 export const actions = {
-  evaluateExpression(expression, ctx, _fname, cb) {
+  printCurrentValue(_cmd, ctx, cb) {
+    cb(null, ctx.current);
+  },
+  evaluateExpression(cmd, ctx, cb) {
     try {
-      const terms = termsFromExpression(expression);
-
-      // even number of terms, likely needs running value prepended
-      if (terms.length % 2 === 0) {
-        terms.unshift(ctx.current);
-      }
+      const terms = constructExpressionTerms(cmd, ctx);
       const result = evaluateTerms(terms);
       ctx.current = result;
       cb(null, result);
@@ -73,6 +88,36 @@ export const actions = {
       }
     }
   },
+
+  saveValue(cmd, ctx, cb) {
+    const matches = cmd.match(saveValueRegex);
+    const varName = matches[1];
+    saveValueToContext(ctx, varName, ctx.current);
+    cb(null, `value ${ctx.current} saved as ${varName}`);
+  },
 };
 
-export function evaluator(cmd, ctx, _fname, cb) {}
+// matches =[optional space][variable name]
+const saveValueRegex = new RegExp(/^\s*\=\s*([a-zA-Z][a-zA-Z0-9]*)\s*$/);
+
+export function evaluator(cmd, ctx, _fname, cb) {
+  const input = cmd.trim();
+
+  const commands = [
+    {
+      match: (cmd) => cmd === 'current',
+      run: actions.printCurrentValue,
+    },
+    {
+      match: (cmd) => cmd.match(saveValueRegex),
+      run: actions.saveValue,
+    },
+    {
+      match: (cmd) => true,
+      run: actions.evaluateExpression,
+    },
+  ];
+
+  const commandDefinition = commands.find((command) => command.match(input));
+  commandDefinition.run(input, ctx, cb);
+}
