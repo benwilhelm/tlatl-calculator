@@ -1,5 +1,5 @@
 import repl from 'repl';
-import { evaluator } from './lib.js';
+import { evaluator } from './app/ui.js';
 
 const app = repl.start({
   prompt: '> ',

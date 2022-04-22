@@ -1,47 +1,18 @@
-const INVALID_EXPRESSION = 'INVALID_EXPRESSION';
+import { evaluateTokens, InvalidExpressionError } from './domain.js';
 
-const operators = {
-  '+': (a, b) => a + b,
-  '-': (a, b) => a - b,
-  '/': (a, b) => a / b,
-  '*': (a, b) => a * b,
-};
-
-function constructExpressionTerms(input, ctx) {
-  const terms = input
+function constructTokenString(input, ctx) {
+  const tokens = input
     .trim()
     .split(/\s+/)
     .map((t) => t.trim())
     .map((t) => (ctx.savedValues?.hasOwnProperty(t) ? ctx.savedValues[t] : t))
     .map((t) => (isNaN(t) ? t : +t));
 
-  // even number of terms, likely needs running value prepended
-  if (terms.length % 2 === 0) {
-    terms.unshift(ctx.current);
+  if (tokens.length % 2 === 0) {
+    tokens.unshift(ctx.current);
   }
 
-  return terms;
-}
-
-function validateTerms(terms) {
-  // should be an odd number of terms
-  if (terms.length % 2 === 0) {
-    return false;
-  }
-
-  for (let i = 0; i < terms.length; i++) {
-    const term = terms[i];
-
-    if (i % 2) {
-      // odd indices, ie. operators
-      if (!operators[term]) return false;
-    } else {
-      // even indices, ie. numbers
-      if (isNaN(term)) return false;
-    }
-  }
-
-  return true;
+  return tokens;
 }
 
 function saveValueToContext(ctx, name, value) {
@@ -53,35 +24,18 @@ function getSavedValueFromContext(ctx, name) {
   return ctx.savedValues[name];
 }
 
-export function evaluateTerms(terms) {
-  if (!validateTerms(terms)) {
-    const err = new Error(`Invalid Expression: ${terms.join(' ')}`);
-    err.code = INVALID_EXPRESSION;
-    throw err;
-  }
-
-  return terms.reduce((val, term, idx, arr) => {
-    if (idx % 2) {
-      const op = operators[term];
-      val = op(val, arr[idx + 1]);
-    }
-
-    return val;
-  });
-}
-
 export const actions = {
   printCurrentValue(_cmd, ctx, cb) {
     cb(null, ctx.current);
   },
   evaluateExpression(cmd, ctx, cb) {
     try {
-      const terms = constructExpressionTerms(cmd, ctx);
-      const result = evaluateTerms(terms);
+      const tokens = constructTokenString(cmd, ctx);
+      const result = evaluateTokens(tokens);
       ctx.current = result;
       cb(null, result);
     } catch (err) {
-      if (err.code === INVALID_EXPRESSION) {
+      if (err instanceof InvalidExpressionError) {
         return cb(null, err.message);
       } else {
         cb(err);

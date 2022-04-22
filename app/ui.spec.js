@@ -1,21 +1,4 @@
-import { evaluator, evaluateTerms, actions } from './lib.js';
-
-describe('evaluateTerms', () => {
-  test('should evaluate simple sequences of + - * /', () => {
-    expect(evaluateTerms([1, '+', 3])).toEqual(4);
-    expect(evaluateTerms([1, '+', 3, '-', 5.5])).toEqual(-1.5);
-  });
-
-  test('should throw for invalid sequences', () => {
-    expect(() => evaluateTerms(['+', 3])).toThrow(/invalid expression/i);
-    expect(() => evaluateTerms([3, '+', '+', 3])).toThrow(
-      /invalid expression/i
-    );
-    expect(() => evaluateTerms([3, '+'])).toThrow(/invalid expression/i);
-    expect(() => evaluateTerms(['m', '+', 'q'])).toThrow(/invalid expression/i);
-    expect(() => evaluateTerms(['+', 'q'])).toThrow(/invalid expression/i);
-  });
-});
+import { evaluator, actions } from './ui.js';
 
 describe('actions.evaluateExpression', () => {
   test('should evaluate complete expression and update ctx.currentValue', () => {
@@ -62,7 +45,7 @@ describe('actions.evaluateExpression', () => {
   });
 });
 
-describe('saveValue', () => {
+describe('actions.saveValue', () => {
   test('should save value to context', () => {
     const cmd = '= foo';
     const ctx = { current: 5 };
