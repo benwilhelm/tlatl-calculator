@@ -35,7 +35,7 @@ describe('actions.evaluateExpression', () => {
 
   test('should allow saved variables in expression', () => {
     const expression = '3 + foo';
-    const ctx = { savedValues: { foo: 5 } };
+    const ctx = { savedResults: { foo: 5 } };
     const cb = jest.fn();
     const expected = 8;
 
@@ -45,14 +45,14 @@ describe('actions.evaluateExpression', () => {
   });
 });
 
-describe('actions.saveValue', () => {
+describe('actions.saveResult', () => {
   test('should save value to context', () => {
     const cmd = '= foo';
     const ctx = { current: 5 };
     const cb = jest.fn();
 
-    actions.saveValue(cmd, ctx, cb);
-    expect(ctx.savedValues.foo).toEqual(5);
+    actions.saveResult(cmd, ctx, cb);
+    expect(ctx.savedResults.foo).toEqual(5);
     expect(cb).toHaveBeenCalledWith(null, 'value 5 saved as foo');
   });
 });
@@ -67,22 +67,22 @@ describe('evaluator', () => {
 
     expect(cb).toHaveBeenCalledWith(null, 10);
   });
-  test('should dispatch saveValue for command loosely matching `=varName`', () => {
-    jest.spyOn(actions, 'saveValue');
+  test('should dispatch saveResult for command loosely matching `=varName`', () => {
+    jest.spyOn(actions, 'saveResult');
     const cmd = '= foo';
     const ctx = { current: 3 };
     const _fname = '';
     const cb = jest.fn();
 
     evaluator(cmd, ctx, _fname, cb);
-    expect(actions.saveValue).toHaveBeenCalledTimes(1);
-    expect(ctx.savedValues.foo).toEqual(3);
+    expect(actions.saveResult).toHaveBeenCalledTimes(1);
+    expect(ctx.savedResults.foo).toEqual(3);
     expect(cb).toHaveBeenCalledWith(null, `value 3 saved as foo`);
   });
 
   test('should dispatch evaluateExpression for any other command', () => {
     jest.spyOn(actions, 'evaluateExpression');
-    jest.spyOn(actions, 'saveValue');
+    jest.spyOn(actions, 'saveResult');
     const cmd = '+ 5';
     const ctx = { current: 3 };
     const _fname = '';
