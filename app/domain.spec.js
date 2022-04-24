@@ -1,4 +1,4 @@
-import { evaluateTokens } from './domain.js';
+import { evaluateTokens, InvalidExpressionError } from './domain.js';
 
 describe('evaluateTokens', () => {
   test('should evaluate simple sequences of + - * /', () => {
@@ -7,14 +7,14 @@ describe('evaluateTokens', () => {
   });
 
   test('should throw for invalid sequences', () => {
-    expect(() => evaluateTokens(['+', 3])).toThrow(/invalid expression/i);
+    expect(() => evaluateTokens(['+', 3])).toThrow(InvalidExpressionError);
     expect(() => evaluateTokens([3, '+', '+', 3])).toThrow(
-      /invalid expression/i
+      InvalidExpressionError
     );
-    expect(() => evaluateTokens([3, '+'])).toThrow(/invalid expression/i);
+    expect(() => evaluateTokens([3, '+'])).toThrow(InvalidExpressionError);
     expect(() => evaluateTokens(['m', '+', 'q'])).toThrow(
-      /invalid expression/i
+      InvalidExpressionError
     );
-    expect(() => evaluateTokens(['+', 'q'])).toThrow(/invalid expression/i);
+    expect(() => evaluateTokens(['+', 'q'])).toThrow(InvalidExpressionError);
   });
 });

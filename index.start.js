@@ -1,11 +1,29 @@
+/**
+ * A naive implementation of a very simple command-line calculator.
+ * Evaluates input using defined operators and saves result to a running
+ * value. Inputs that begin with an operator will apply the expression to the
+ * running value. Inputs that begin with a number will replace the running
+ * value with the result
+ *
+ * For example:
+ *  prompt> 3 + 6
+ *  result: 9
+ *  prompt> - 5  // starts with operator, applies expression to running value
+ *  result: 4
+ *  prompt> 5 + 5 - 3 // complete expression, replaces running value
+ *  result: 7
+ *
+ * The implementation below works, but is not very testable and does not
+ * lend itself to additional features and commands.
+ *
+ * Your task is to extract the logic of the evaluator method into interaction and
+ * domain concerns, which can be easily tested and extended into additional
+ * functionality, TBA in part two of the exercise.
+ */
+
 import repl from 'repl';
 
-const app = repl.start({
-  prompt: '> ',
-  eval: evaluator,
-});
-app.context.current = 0;
-
+// defines the operators you can use in an expression
 const operators = {
   '+': (a, b) => a + b,
   '-': (a, b) => a - b,
@@ -13,35 +31,45 @@ const operators = {
   '*': (a, b) => a * b,
 };
 
-function evaluator(cmd, ctx, filename, cb) {
-  const terms = cmd
-    .trim()
-    .split(/\s+/)
-    .map((t) => t.trim());
+const app = repl.start({
+  prompt: '> ',
+  eval: (cmd, ctx, filename, cb) => {
+    // parses expression such as "3 + 5"
+    // into array of tokens [ 3, "+", 5 ].
+    // Assumes spaces between tokens in original expression
+    const tokens = cmd
+      .trim()
+      .split(/\s+/)
+      .map((t) => t.trim());
 
-  let val;
+    let val;
 
-  if (isNaN(terms[0])) {
-    terms.unshift(ctx.current);
-  }
-
-  terms.forEach((term, idx, arr) => {
-    if (idx === 0) {
-      val = +term;
+    // If expression starts with an operator, prepend the
+    // running value to the beginning of the expression
+    if (operators.hasOwnProperty(tokens[0])) {
+      tokens.unshift(ctx.current);
     }
 
-    // odd indices, ie. operators
-    if (idx % 2) {
-      const op = operators[term];
-      val = op(val, +arr[idx + 1]);
-    }
-  });
+    // iterate over the expression, applying operators to terms
+    tokens.forEach((term, idx, arr) => {
+      if (idx === 0) {
+        val = +term;
+      }
 
-  ctx.current = val;
-  app.setPrompt(prompt(ctx.current));
-  cb(null, ctx.current);
-}
+      // odd indices, ie. operators
+      if (idx % 2) {
+        const op = operators[term];
+        val = op(val, +arr[idx + 1]);
+      }
+    });
 
-function prompt(current) {
-  return `${current} > `;
-}
+    // update current with result
+    ctx.current = val;
+
+    // outputs running value to screen
+    cb(null, ctx.current);
+  },
+});
+
+// sets starting value for current
+app.context.current = 0;
