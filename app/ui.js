@@ -126,7 +126,7 @@ export function evaluator(cmd, ctx, _fname, cb) {
  * ContextFactory gives us a central place to define the shape of
  * the context object, ensuring that tests and live application get
  * initialized with the same properties, but allowing for the values
- * of those properties to be specified at runtime (useful for tests)
+ * of those properties to be overridden/specified at runtime (useful for tests)
  */
 export function contextFactory(overrides = {}) {
   const defaults = {
