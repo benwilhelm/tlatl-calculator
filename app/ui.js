@@ -1,4 +1,8 @@
-import { evaluateTokens, InvalidExpressionError } from './domain.js';
+import {
+  evaluateTokens,
+  numberStore,
+  InvalidExpressionError,
+} from './domain.js';
 
 /**
  *
@@ -26,57 +30,10 @@ function constructTokenString(input, substitutions = {}, currentValue = 0) {
 }
 
 /**
- * Saves a value to the context object to be recalled later
- *
- * @param {Object} ctx - REPL context object
- * @param {String} name - Name to use for later recall of value
- * @param {Number} value - Value to save
- *
- * Creating a function for this operation (and its partner
- * for retrieving values below) gives us a stable interface
- * behind which we can change implementation details. If we want to
- * rename the property under which we save these values, for instance,
- * we are free to do that without having to track down every reference
- * to it in source code. It also gives us a place to encapsulate edge
- * cases such as instantiating the object itself for the first time.
- *
- * Saving values to context is still technically an implementation
- * detail of our UI module (it's not exported or used anywhere else) so
- * we don't test it directly, but this lays the groundwork for a
- * possibly extracting it into a separate module that could be used
- * for state management (similar to Redux or the like)
- */
-function saveResultToContext(ctx, name, value) {
-  ctx.savedResults = ctx.savedResults || {};
-  ctx.savedResults[name] = value;
-}
-
-/**
- * Gets a hash of all values that have been saved using saveResultToContext()
- *
- * @param {Object} ctx - REPL context object
- * @returns {Object} - Key/value hash of saved values
- */
-function getSavedResultsFromContext(ctx) {
-  return ctx.savedResults ? { ...ctx.savedResults } : {};
-}
-
-/**
  * Actions object contains each individual handler for the various
  * actions that a user can take from the command line.
  */
 export const actions = {
-  /**
-   * Prints current running value to screen
-   *
-   * @param {string} _cmd - unused, but passed in by evaluator function
-   * @param {object} ctx - REPL context object
-   * @param {function} cb - Callback to signify completion
-   */
-  printCurrentValue(_cmd, ctx, cb) {
-    cb(null, ctx.current);
-  },
-
   /**
    * Evaluates arithmetic expression, saving result to context and
    * displaying it to the user
@@ -89,7 +46,7 @@ export const actions = {
     try {
       const tokens = constructTokenString(
         cmd,
-        getSavedResultsFromContext(ctx),
+        ctx.savedValues.getAll(),
         ctx.current
       );
       const result = evaluateTokens(tokens);
@@ -118,7 +75,7 @@ export const actions = {
   saveResult(cmd, ctx, cb) {
     const matches = cmd.match(saveResultRegex);
     const varName = matches[1];
-    saveResultToContext(ctx, varName, ctx.current);
+    ctx.savedValues.set(varName, ctx.current);
     cb(null, `value ${ctx.current} saved as ${varName}`);
   },
 };
@@ -152,10 +109,6 @@ export function evaluator(cmd, ctx, _fname, cb) {
 
   const commands = [
     {
-      match: (cmd) => cmd === 'current',
-      run: actions.printCurrentValue,
-    },
-    {
       match: (cmd) => cmd.match(saveResultRegex),
       run: actions.saveResult,
     },
@@ -167,4 +120,19 @@ export function evaluator(cmd, ctx, _fname, cb) {
 
   const commandDefinition = commands.find((command) => command.match(input));
   commandDefinition.run(input, ctx, cb);
+}
+
+/**
+ * ContextFactory gives us a central place to define the shape of
+ * the context object, ensuring that tests and live application get
+ * initialized with the same properties, but allowing for the values
+ * of those properties to be specified at runtime (useful for tests)
+ */
+export function contextFactory(overrides = {}) {
+  const defaults = {
+    current: 0,
+    savedValues: numberStore(),
+  };
+
+  return { ...defaults, ...overrides };
 }

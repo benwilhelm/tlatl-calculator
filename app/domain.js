@@ -86,3 +86,37 @@ export class InvalidExpressionError extends Error {
     this.name = 'InvalidExpressionError';
   }
 }
+
+/**
+ * Factory function to create a number store
+ *
+ * @returns {object} - a key/value store with set/get/getAll methods.
+ *   Keys must be strings, values must be numeric
+ *
+ * By creating closure around the store object, we hide the implementation details
+ * behind the public interface of set/get/getAll.
+ */
+export function numberStore() {
+  const store = {};
+
+  return {
+    set(name, value) {
+      if (isNaN(value)) {
+        throw new Error(`value argument must be a number, received ${value}`);
+      }
+      store[name] = value;
+    },
+
+    get(name) {
+      return store[name];
+    },
+
+    getAll() {
+      // Returns copy of store rather than store itself.
+      // Since objects are passed by references, this makes sure
+      // that you can't accidentally modify the store from an external
+      // context by modifying a returned reference to it
+      return { ...store };
+    },
+  };
+}
